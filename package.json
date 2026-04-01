@@ -1,0 +1,16 @@
+{
+  "name": "enemy-flag",
+  "private": true,
+  "version": "0.0.1",
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  },
+  "scripts": {
+    "test": "pnpm -r test",
+    "build": "pnpm -r build",
+    "dev": "pnpm --filter client dev"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
