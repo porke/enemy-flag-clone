@@ -47,10 +47,17 @@ export function loadMap(json: unknown): GameState {
     })),
   );
 
-  // Collect all unique non-neutral owners
+  // Canonical runtime ID mapping: map file may use generic slot names (e.g.
+  // "player2") that we normalise to the runtime IDs expected by the client.
+  const OWNER_REMAP: Record<string, string> = {
+    player2: "ai",
+  };
+  const remapOwner = (raw: string): string => OWNER_REMAP[raw] ?? raw;
+
+  // Collect all unique non-neutral owners (after remapping)
   const ownerSet = new Set<string>();
   for (const tile of definition.tiles) {
-    if (tile.owner !== "neutral") ownerSet.add(tile.owner);
+    if (tile.owner !== "neutral") ownerSet.add(remapOwner(tile.owner));
   }
 
   // Populate sectors from tile list
@@ -70,7 +77,9 @@ export function loadMap(json: unknown): GameState {
       feature = rawFeature as Feature;
     }
 
-    sector.owner = tile.owner as PlayerId | "neutral";
+    // Tree and mountain tiles are always neutral and impassable — ignore map owner
+    const isImpassable = feature === "tree" || feature === "mountain";
+    sector.owner = isImpassable ? "neutral" : (remapOwner(tile.owner) as PlayerId | "neutral");
     sector.building = building;
     sector.feature = feature;
     sector.goldVein = tile.gold_vein;

@@ -60,14 +60,14 @@ describe("loadMap", () => {
 
   it("assigns sectors to the correct players based on owner field", () => {
     const state = loadMap(ExampleMap);
-    // player1 should own (2,2) according to ExampleMap
-    expect(state.sectors[2]![2]!.owner).toBe("player1");
+    // player1 town hall at (4,4) according to ExampleMap
+    expect(state.sectors[4]![4]!.owner).toBe("player1");
   });
 
   it("preserves gold_vein flag from JSON", () => {
     const state = loadMap(ExampleMap);
-    // (4,1) has gold_vein: true in ExampleMap
-    expect(state.sectors[1]![4]!.goldVein).toBe(true);
+    // (4,2) has gold_vein: true in ExampleMap (player1 N tip facing top edge)
+    expect(state.sectors[2]![4]!.goldVein).toBe(true);
   });
 
   it("sets feature = 'tree' or 'mountain' on appropriate tiles", () => {

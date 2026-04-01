@@ -68,6 +68,7 @@ function findAnnexCandidate(state: GameState, playerId: PlayerId): Coord | null 
 
       if (sector.owner === playerId) continue;
       if (sector.building !== null) continue;
+      if (sector.feature === "tree" || sector.feature === "mountain") continue; // impassable tiles stay neutral
 
       // Map-edge sectors cannot be annexed
       if (x === 0 || x === width - 1 || y === 0 || y === height - 1) continue;

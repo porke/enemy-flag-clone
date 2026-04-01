@@ -47,18 +47,18 @@ describe("Integration – ExampleMap initial state", () => {
 
   it("both players start with no eliminations", () => {
     expect(state.players["player1"]!.eliminated).toBe(false);
-    expect(state.players["player2"]!.eliminated).toBe(false);
+    expect(state.players["ai"]!.eliminated).toBe(false);
   });
 
-  it("player1 Town Hall is at (2,3)", () => {
-    const sector = state.sectors[3]?.[2];
+  it("player1 Town Hall is at (4,4)", () => {
+    const sector = state.sectors[4]?.[4];
     expect(sector?.owner).toBe("player1");
     expect(sector?.building?.type).toBe("town_hall");
   });
 
-  it("player2 Town Hall is at (17,16)", () => {
-    const sector = state.sectors[16]?.[17];
-    expect(sector?.owner).toBe("player2");
+  it("player2 Town Hall is at (15,15)", () => {
+    const sector = state.sectors[15]?.[15];
+    expect(sector?.owner).toBe("ai");
     expect(sector?.building?.type).toBe("town_hall");
   });
 
@@ -75,15 +75,15 @@ describe("Integration – player1 attacks an adjacent neutral sector", () => {
     state = loadMap(ExampleMapJson);
   });
 
-  // (1,2) is adjacent to player1's (2,2) and (1,3); also within 8-range of (2,3)
-  it("(1,2) is a valid attack target at game start", () => {
-    expect(canAttack(state, "player1", { x: 1, y: 2 })).toBe(true);
+  // (3,2) is adjacent to player1's (3,3) and (4,2); also within 8-range of (4,4)
+  it("(3,2) is a valid attack target at game start", () => {
+    expect(canAttack(state, "player1", { x: 3, y: 2 })).toBe(true);
   });
 
-  it("attacking (1,2) succeeds and claims the sector", () => {
-    const result = applyAttack(state, "player1", { x: 1, y: 2 });
+  it("attacking (3,2) succeeds and claims the sector", () => {
+    const result = applyAttack(state, "player1", { x: 3, y: 2 });
     expect(result.ok).toBe(true);
-    expect(sectorOwner(result.newState, 1, 2)).toBe("player1");
+    expect(sectorOwner(result.newState, 3, 2)).toBe("player1");
     state = result.newState;
   });
 
@@ -101,7 +101,7 @@ describe("Integration – player1 end of turn", () => {
 
   beforeAll(() => {
     stateAfterAttack = loadMap(ExampleMapJson);
-    stateAfterAttack = applyAttack(stateAfterAttack, "player1", { x: 1, y: 2 }).newState;
+    stateAfterAttack = applyAttack(stateAfterAttack, "player1", { x: 3, y: 2 }).newState;
 
     const eotResult = applyEndOfTurn(stateAfterAttack, "player1");
     expect(eotResult.ok).toBe(true);
@@ -109,7 +109,7 @@ describe("Integration – player1 end of turn", () => {
   });
 
   it("active player advances to player2", () => {
-    expect(stateAfterEot.activePlayerId).toBe("player2");
+    expect(stateAfterEot.activePlayerId).toBe("ai");
   });
 
   it("turn counter is still 1 (not yet wrapped)", () => {
@@ -127,8 +127,8 @@ describe("Integration – player1 end of turn", () => {
   });
 
   it("player1 territory is not disturbed by EOT", () => {
-    expect(sectorOwner(stateAfterEot, 1, 2)).toBe("player1");
-    expect(sectorOwner(stateAfterEot, 2, 3)).toBe("player1");
+    expect(sectorOwner(stateAfterEot, 3, 2)).toBe("player1");
+    expect(sectorOwner(stateAfterEot, 4, 4)).toBe("player1");
   });
 });
 
@@ -139,9 +139,9 @@ describe("Integration – player2 ends turn (no actions)", () => {
 
   beforeAll(() => {
     state = loadMap(ExampleMapJson);
-    state = applyAttack(state, "player1", { x: 1, y: 2 }).newState;
+    state = applyAttack(state, "player1", { x: 3, y: 2 }).newState;
     state = applyEndOfTurn(state, "player1").newState;
-    state = applyEndOfTurn(state, "player2").newState;
+    state = applyEndOfTurn(state, "ai").newState;
   });
 
   it("active player is back to player1", () => {
@@ -153,11 +153,11 @@ describe("Integration – player2 ends turn (no actions)", () => {
   });
 
   it("player2 gold increased by BASE_GOLD_INCOME", () => {
-    expect(gold(state, "player2")).toBe(352);
+    expect(gold(state, "ai")).toBe(352);
   });
 
   it("player2 AP capped after idle income (8 start + 8 income = 12 cap)", () => {
-    expect(ap(state, "player2")).toBe(12);
+    expect(ap(state, "ai")).toBe(12);
   });
 });
 
@@ -172,9 +172,9 @@ describe("Integration – victory via destroying last Town Hall", () => {
     state = {
       ...state,
       sectors: state.sectors.map((row, y) =>
-        y === 16
+        y === 15
           ? row.map((s, x) =>
-              x === 17 && s.building
+              x === 15 && s.building
                 ? { ...s, building: { ...s.building, hp: 1 } }
                 : s,
             )
@@ -183,26 +183,14 @@ describe("Integration – victory via destroying last Town Hall", () => {
     };
 
     // Give player1 enough AP and position (teleport player1 into range by
-    // directly mutating a sector adjacent to player2's TH)
-    // Place a player1 sector at (16,16) and (17,15) so player1 can claim (17,16)
+    // directly mutating sectors adjacent to player2's TH at (15,15))
+    // Place player1 at (14,14), (14,15), (14,16) so player1 can claim (15,15)
     state = {
       ...state,
       sectors: state.sectors.map((row, y) => {
-        if (y === 16) {
-          return row.map((s, x) => {
-            if (x === 16) return { ...s, owner: "player1" };
-            if (x === 18) return { ...s, owner: "player1" };
-            return s;
-          });
-        }
-        if (y === 15) {
+        if (y === 14 || y === 15 || y === 16) {
           return row.map((s, x) =>
-            x === 17 ? { ...s, owner: "player1" } : s,
-          );
-        }
-        if (y === 17) {
-          return row.map((s, x) =>
-            x === 17 ? { ...s, owner: "player1" } : s,
+            x === 14 ? { ...s, owner: "player1" } : s,
           );
         }
         return row;
@@ -222,15 +210,15 @@ describe("Integration – victory via destroying last Town Hall", () => {
       },
     };
 
-    // canAttack (17,16) — should be valid; 4-neighbors include (16,16) and others owned by p1
-    expect(canAttack(state, "player1", { x: 17, y: 16 })).toBe(true);
+    // canAttack (15,15) — should be valid; (14,15) is a 4-neighbor owned by player1
+    expect(canAttack(state, "player1", { x: 15, y: 15 })).toBe(true);
 
     // Attack the TH; after HP drops to 0 claim completes and victory is declared
-    const result = applyAttack(state, "player1", { x: 17, y: 16 });
+    const result = applyAttack(state, "player1", { x: 15, y: 15 });
     expect(result.ok).toBe(true);
 
     // checkVictory is called inside applyAttack; verify winner
     expect(result.newState.winner).toBe("player1");
-    expect(result.newState.players["player2"]!.eliminated).toBe(true);
+    expect(result.newState.players["ai"]!.eliminated).toBe(true);
   });
 });

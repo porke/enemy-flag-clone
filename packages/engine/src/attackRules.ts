@@ -14,6 +14,9 @@ export function canAttack(state: GameState, attackerId: PlayerId, targetCoord: C
   const target = getSector(state, targetCoord);
   if (!target) return false; // out of bounds
 
+  // Tree and mountain tiles are impassable — cannot be attacked or conquered
+  if (target.feature === "tree" || target.feature === "mountain") return false;
+
   // Cannot attack own sector
   if (target.owner === attackerId) return false;
 
