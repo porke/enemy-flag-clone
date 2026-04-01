@@ -5,12 +5,12 @@ import { computeAiTurn } from "@enemy-flag/ai";
 import { LocalTransport } from "./transport/LocalTransport.js";
 import { GameProvider } from "./context/GameContext.js";
 import { App } from "./components/App.js";
-import ExampleMap from "../../engine/src/maps/ExampleMap.json";
+import JungleMap from "../../engine/src/maps/JungleMap.json";
 
 const HUMAN_ID = "player1";
 const AI_ID = "ai";
 
-const initialState = loadMap(ExampleMap);
+const initialState = loadMap(JungleMap);
 const transport = new LocalTransport(initialState, AI_ID, computeAiTurn);
 
 const root = createRoot(document.getElementById("root")!);

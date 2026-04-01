@@ -161,6 +161,84 @@ The map data model gains an optional `elevation` field per sector (integer 0–8
 
 ---
 
+## Technology Tree
+
+The base game uses a flat XP gate: once a player accumulates enough XP, higher-tier buildings become available. A **technology tree** replaces that flat unlock with a branching spending decision — XP still accumulates as before, but each threshold converts into one or more **Advancement Points (AP-T)** that the player actively allocates to a tree of nodes.
+
+The core design intent is to widen the skill-expression gap by adding a **strategic identity layer**: two players at the same XP level can have very different capability profiles depending on which branches they have invested in, making scouting an opponent's tech choices as valuable as scouting their territory.
+
+### Advancement Point Cadence
+
+One AP-T is awarded at each of a set of cumulative XP thresholds (e.g. 25, 60, 110, 175, 250 …), following a widening curve so early-game decisions come quickly but late-game upgrades are hard-earned. Unspent AP-T are banked indefinitely — a player can save two points to unlock a tier-2 node in one turn rather than being forced into a suboptimal tier-1 spend.
+
+The existing XP-gated building system is **replaced** by this tree; there is no separate unlock mechanism running in parallel.
+
+### Tree Structure
+
+Four branches, each independently advanceable. Nodes within a branch must be unlocked in tier order (tier 1 before tier 2, etc.). Cross-branch prerequisites can exist for advanced nodes to reward breadth.
+
+#### Branch 1 – Infrastructure (Buildings)
+
+| Tier | Node | Effect |
+|---|---|---|
+| 1 | Basic Structures | Unlocks Mine, Barracks |
+| 1 | Fortifications | Unlocks Wooden Wall |
+| 2 | Advanced Structures | Unlocks Watchtower, second Town Hall |
+| 2 | Stone Masonry | Unlocks Stone Wall; Wooden Walls gain +1 HP |
+| 3 | Grand Citadel | Town Halls gain +1 max HP; unlocks fortress-tile placement |
+
+This mirrors the current XP gate functionally but distributes decisions — a player who rushes Stone Masonry delays Advanced Structures, creating a readable strategic trade-off.
+
+#### Branch 2 – Economy
+
+| Tier | Node | Effect |
+|---|---|---|
+| 1 | Efficient Mining | Mine base output +2 gold/turn |
+| 1 | Tax Collection | Base gold income +1/turn per Town Hall |
+| 2 | Deep Shafts | Mine output on gold-vein sectors +4 gold/turn; decay rate reduced by 25% (if building age mechanic is active) |
+| 2 | Trade Routes | Gold cap raised by 2,000 |
+| 3 | Industrial Complex | All Mine bonuses stack; one Mine per owned region may be designated as a "mother lode" with double output |
+
+#### Branch 3 – Military & Covert
+
+| Tier | Node | Effect |
+|---|---|---|
+| 1 | Veteran Barracks | Barracks generate +2 soldiers/turn |
+| 1 | Trap Setting | Unlocks the Set Trap covert action |
+| 2 | Reinforced Walls | All walls gain +1 HP; wall repair costs −25% gold |
+| 2 | Saboteur Corps | Unlocks the Sabotage Building covert action |
+| 3 | Elite Forces | Soldiers cost 20% less AP to deploy in attacks; trap army-casualty multiplier raised from 5× to 8× |
+| 3 | Shadow Network | Sabotage duration raised from 5 turns to 8; can target buildings without direct visibility (fog-of-war tile known from prior scouting counts) |
+
+Covert actions from the brainstorming section are gated here rather than being available by default, giving the defending player a meaningful signal: if an opponent has reached Military tier 2, traps and sabotage are live threats and counter-investment (redundant buildings, scouting) becomes rational.
+
+#### Branch 4 – Doctrine (Modes & Combo Bonuses)
+
+| Tier | Node | Effect |
+|---|---|---|
+| 1 | Economic Doctrine | Unlocks Economy Mode; Economy Mode AP discount raised to 12% |
+| 1 | Military Doctrine | Unlocks Military Mode; Military Mode AP discount raised to 12% |
+| 2 | Efficient Transitions | Mode-switch AP cost reduced from 2 to 1 |
+| 2 | Momentum Training | Progressive combo discount cap raised from 15% to 22%; chain length needed to reach cap reduced by 2 actions |
+| 3 | Grand Strategy | While in a declared Mode, mismatched action penalty is removed entirely; matching actions gain an additional +3% discount on top of the mode bonus |
+
+This branch is the highest-skill ceiling investment: it provides no direct military or economic output, only efficiency multipliers, so players who invest here are betting on superior turn planning over raw stat growth.
+
+### UI / UX Considerations
+
+- The tech tree is shown in a dedicated **Research panel**, accessible from a button in the right HUD panel. It replaces the current implicit XP-bar-to-building-unlock flow.
+- Each node displays: name, AP-T cost (always 1 for tier 1–2, 2 for tier 3 to slow the endgame), current tier lock status, and a one-line effect description.
+- Nodes the opponent has unlocked (if visible via scouting or deduction) are shown with a distinct colour in the tree to surface the strategic intelligence value.
+- Unspent AP-T shows as a pulsing indicator on the Research panel button so players are not silently sitting on banked points.
+
+### Balance Considerations
+
+- Four branches means a player can roughly fully invest in two branches and partially invest in a third by late-game — full mastery of all four should be impossible in a normal-length game, forcing genuine priority decisions.
+- Tier 3 nodes in Military and Doctrine are deliberately powerful; they should require the broadest XP investment (highest thresholds) and potentially a cross-branch prerequisite (e.g. Grand Strategy requires tier 2 in both Doctrine nodes).
+- The tree must remain tractable for new players: a "Recommended" auto-spend option that follows a sensible default path (Infrastructure tier 1 → Economy tier 1 → Infrastructure tier 2) lowers the entry barrier without removing the depth for experienced players.
+
+---
+
 ## Notes
 
 - Hex grid and building age are self-contained enough to prototype independently on a fork without touching the core rule surface.
@@ -170,3 +248,4 @@ The map data model gains an optional `elevation` field per sector (integer 0–8
 - Terrain tiles (fortress, hill, river crossing) require map-generation rules and new sector metadata fields, but no new action types — relatively low implementation cost post-M1.
 - Covert actions (traps, sabotage) require new action types, visibility checks, and status-effect tracking on `GameState`; best scoped after M1 feature parity is stable.
 - Isometric rendering is a full client-layer replacement with zero impact on engine/AI; it can be prototyped as a separate `packages/client-iso` package reusing all existing engine and AI packages unchanged.
+- Technology tree replaces the existing flat XP gate entirely; it requires a new `techTree` field on `PlayerState` and a `spendAdvancementPoint(state, playerId, nodeId)` engine action, but no changes to the turn structure or resource income formulas.
